@@ -1,0 +1,53 @@
+step,decision_ref,table,key_columns,issue,action,rows_affected,notes
+1,setup,dim_advisor,advisor_id,load raw file as text,"read (dtype=str, keep_default_na=False)",25,7 columns
+1,setup,dim_benchmark,benchmark_id,load raw file as text,"read (dtype=str, keep_default_na=False)",8,4 columns
+1,setup,dim_client,client_id,load raw file as text,"read (dtype=str, keep_default_na=False)",2500,14 columns
+1,setup,dim_date,date_id,load raw file as text,"read (dtype=str, keep_default_na=False)",1827,12 columns
+1,setup,dim_security,security_id,load raw file as text,"read (dtype=str, keep_default_na=False)",500,8 columns
+1,setup,fact_fees,fee_id,load raw file as text,"read (dtype=str, keep_default_na=False)",122197,8 columns
+1,setup,fact_portfolio_snapshot,snapshot_id,load raw file as text,"read (dtype=str, keep_default_na=False)",129547,14 columns
+1,setup,fact_transactions,txn_id,load raw file as text,"read (dtype=str, keep_default_na=False)",298572,10 columns
+2,general,(all tables),(all columns),leading/trailing whitespace,trim (str.strip),0,profile showed none; step kept as a guard so the join keys are safe
+3,#5,dim_advisor,advisor_id,certifications = literal 'None' (read as NaN by default pandas),standardize -> 'No Certification',6,advisors have 5-23 yrs experience; value means 'holds no certification'
+4,#7,dim_client,client_id,is_active: boolean encoding (False/True),convert -> 0/1 integer boolean,2500,counts verified identical before/after
+4,#7,dim_date,date_id,is_month_end: boolean encoding (0/1),convert -> 0/1 integer boolean,0,counts verified identical before/after
+4,#7,dim_date,date_id,is_quarter_end: boolean encoding (0/1),convert -> 0/1 integer boolean,0,counts verified identical before/after
+4,#7,dim_date,date_id,is_year_end: boolean encoding (0/1),convert -> 0/1 integer boolean,0,counts verified identical before/after
+4,#7,dim_date,date_id,is_trading_day: boolean encoding (0/1),convert -> 0/1 integer boolean,0,counts verified identical before/after
+4,#7,dim_security,security_id,is_etf: boolean encoding (False/True),convert -> 0/1 integer boolean,500,counts verified identical before/after
+4,#7,fact_portfolio_snapshot,snapshot_id,is_return_suspect: boolean encoding (0/1),convert -> 0/1 integer boolean,0,counts verified identical before/after
+4,#7,fact_transactions,txn_id,is_post_departure_txn: boolean encoding (0/1),convert -> 0/1 integer boolean,0,counts verified identical before/after
+5,#10,dim_client,client_id,client_since: date stored as text,convert -> datetime,0,"0 parse failures; written back as YYYY-MM-DD, no values changed"
+5,#10,dim_date,date_id,date: date stored as text,convert -> datetime,0,"0 parse failures; written back as YYYY-MM-DD, no values changed"
+5,#10,fact_fees,fee_id,fee_date: date stored as text,convert -> datetime,0,"0 parse failures; written back as YYYY-MM-DD, no values changed"
+5,#10,fact_portfolio_snapshot,snapshot_id,snapshot_date: date stored as text,convert -> datetime,0,"0 parse failures; written back as YYYY-MM-DD, no values changed"
+5,#10,fact_transactions,txn_id,txn_date: date stored as text,convert -> datetime,0,"0 parse failures; written back as YYYY-MM-DD, no values changed"
+6,#8,dim_client,client_id,zip_code has leading zeros (228),keep as text,0,numeric type would turn 03897 into 3897; BI tool must import as Text
+7,#9,dim_security,security_id,expense_ratio_bps stored as '17.0',convert -> integer bps,219,"whole numbers only, verified no rounding; 281 blanks left blank (#13)"
+8,types,(all tables),(all numeric columns),numbers stored as text,"convert ids/ints -> Int64, decimals -> float",0,every value round-trips to identical text; nullable only for security_id/shares/price
+9,#3,fact_transactions,txn_id,transactions on closed accounts (is_post_departure_txn = 1),quarantine -> quarantine_fact_transactions_post_departure.csv,2410,131 inactive clients; all dated after their last snapshot; advisors still active
+10,#1,fact_portfolio_snapshot,snapshot_id,"AUM = 1,000.00 floor placeholder",flag is_aum_floor = 1 (values kept),420,fees aum_basis == snapshot aum in 100% of client-months; floored fees $0.65-$0.80; 274 of 420 snapshots already is_return_suspect
+10,#1,fact_fees,fee_id,"AUM = 1,000.00 floor placeholder",flag is_aum_floor = 1 (values kept),386,fees aum_basis == snapshot aum in 100% of client-months; floored fees $0.65-$0.80; 274 of 420 snapshots already is_return_suspect
+11,#2,fact_portfolio_snapshot,snapshot_id,return_ytd <= -90% or > +300% (871 rows),flag (existing is_return_suspect); no new column,0,verified 100% of extremes already flagged; values kept
+12,#4,fact_portfolio_snapshot,"client_id, snapshot_date",snapshot client-month has no fee row,flag has_fee_record (0 = no fee); no fee rows created,7350,fees are exactly 1 per client-month; only 0.5% of gaps are floor months
+13,#6,dim_client,client_id,risk_profile = 'Unknown',"leave value, flag is_risk_profile_unknown",75,all on benchmark 3 (Balanced default); inferring 'Balanced' would be circular
+14,#11,fact_portfolio_snapshot,snapshot_id,snapshot_date earlier than client_since,leave as is (verified),930,monthly rows are dated the 1st; all fall in the joining month
+14,#11,fact_fees,fee_id,fee_date earlier than client_since,leave as is (verified),858,monthly rows are dated the 1st; all fall in the joining month
+15,#12,fact_transactions,txn_id,"blank security_id, shares, price",leave as is (verified),100728,blank iff txn_type is a cash movement; not filled
+16,#13,dim_security,security_id,blank sector (219) and expense_ratio_bps (281),leave as is (verified),500,sector N/A for ETFs; expense ratio N/A for single stocks
+17,#14,fact_transactions,txn_id,trade rows share client/advisor/security/date,leave as is (verified),708,"0 exact duplicates; mostly a Buy+Sell / Buy+Dividend on the same day; 712 in raw, 708 after #3 quarantine"
+18,#15,dim_client,client_id,client_tier differs from latest AUM,leave as is (verified),0,tier = band of initial_aum in 100% of clients; it is not re-assigned over time
+19,#16,dim_client,client_id,client_since outside dim_date range,leave as is,1532,"client attribute, not a join key to dim_date"
+20,#17,dim_benchmark / dim_security,asset_class,asset_class value sets differ,leave as is,0,different meanings; do not join on asset_class
+21,#18,dim_date,date_id,is_trading_day ignores market holidays,leave as is (noted),0,matters only when counting trading days
+22,#19,fact_fees,fee_id,derived column: amount = aum_basis * bps_charged / 120000,leave as is (verified),0,holds for 100% of rows
+22,#19,fact_portfolio_snapshot,snapshot_id,derived column: return_ytd = benchmark_return_ytd + active_alpha_ytd,leave as is (verified),0,holds for 100% of rows
+22,#19,fact_transactions,txn_id,derived column: amount = shares * price (trades),leave as is (verified),0,holds for 100% of rows
+24,final,dim_advisor,advisor_id,row reconciliation,raw = clean + quarantined,25,raw 25 = clean 25 + quarantined 0
+24,final,dim_benchmark,benchmark_id,row reconciliation,raw = clean + quarantined,8,raw 8 = clean 8 + quarantined 0
+24,final,dim_client,client_id,row reconciliation,raw = clean + quarantined,2500,raw 2500 = clean 2500 + quarantined 0
+24,final,dim_date,date_id,row reconciliation,raw = clean + quarantined,1827,raw 1827 = clean 1827 + quarantined 0
+24,final,dim_security,security_id,row reconciliation,raw = clean + quarantined,500,raw 500 = clean 500 + quarantined 0
+24,final,fact_fees,fee_id,row reconciliation,raw = clean + quarantined,122197,raw 122197 = clean 122197 + quarantined 0
+24,final,fact_portfolio_snapshot,snapshot_id,row reconciliation,raw = clean + quarantined,129547,raw 129547 = clean 129547 + quarantined 0
+24,final,fact_transactions,txn_id,row reconciliation,raw = clean + quarantined,298572,raw 298572 = clean 296162 + quarantined 2410

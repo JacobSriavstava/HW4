@@ -1,0 +1,17 @@
+table,stage,rows,pct_completeness,pct_key_uniqueness,pct_type_validity,pct_rule_pass,pct_referential_match
+dim_advisor,raw,25,96.571,100.0,100.0,94.0,
+dim_advisor,clean,25,100.0,100.0,100.0,100.0,
+dim_benchmark,raw,8,100.0,100.0,100.0,100.0,
+dim_benchmark,clean,8,100.0,100.0,100.0,100.0,
+dim_client,raw,2500,99.786,100.0,100.0,99.667,100.0
+dim_client,clean,2500,99.8,100.0,100.0,99.667,100.0
+dim_date,raw,1827,100.0,100.0,100.0,100.0,
+dim_date,clean,1827,100.0,100.0,100.0,100.0,
+dim_security,raw,500,100.0,100.0,93.743,100.0,100.0
+dim_security,clean,500,100.0,100.0,100.0,100.0,100.0
+fact_fees,raw,122197,100.0,100.0,100.0,100.0,100.0
+fact_fees,clean,122197,100.0,100.0,100.0,100.0,100.0
+fact_portfolio_snapshot,raw,129547,100.0,100.0,100.0,99.968,100.0
+fact_portfolio_snapshot,clean,129547,100.0,100.0,100.0,99.968,100.0
+fact_transactions,raw,298572,100.0,100.0,100.0,99.848,100.0
+fact_transactions,clean,296162,100.0,100.0,100.0,100.0,100.0

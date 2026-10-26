@@ -1,0 +1,85 @@
+finding_id,severity,check_group,check,table,column,affected_rows,affected_pct,detail,examples
+1,WARN,1 Column-level,placeholder_tokens,dim_advisor,certifications,6,24.0,literal null-like tokens stored as text (default pd.read_csv would turn 'None'/'NA'/'NULL' into NaN). Decide: real value or missing? 'None': 6,
+2,WARN,1 Column-level,placeholder_tokens,dim_client,risk_profile,75,3.0,literal null-like tokens stored as text (default pd.read_csv would turn 'None'/'NA'/'NULL' into NaN). Decide: real value or missing? 'Unknown': 75,
+3,WARN,1 Column-level,suspicious_repeated_value,fact_fees,aum_basis,386,0.316,"value '1000.0' appears 386x in an otherwise near-unique column (next most common appears 2x) -- default, floor, or placeholder?","fee_id=1380, fee_id=1629, fee_id=1630, fee_id=1631, fee_id=1638"
+4,WARN,1 Column-level,suspicious_repeated_value,fact_portfolio_snapshot,aum,420,0.324,"value '1000.0' appears 420x in an otherwise near-unique column (next most common appears 2x) -- default, floor, or placeholder?","snapshot_id=1463, snapshot_id=1464, snapshot_id=1727, snapshot_id=1728, snapshot_id=1729"
+5,WARN,1 Column-level,range_suspicious,fact_portfolio_snapshot,return_ytd,498,0.384,return between -100% and -90% (near-total loss),"snapshot_id=1463, snapshot_id=1464, snapshot_id=1465, snapshot_id=1466, snapshot_id=1467"
+6,WARN,1 Column-level,range_suspicious,fact_portfolio_snapshot,return_ytd,373,0.288,return above +300%,"snapshot_id=1483, snapshot_id=1484, snapshot_id=1485, snapshot_id=4351, snapshot_id=5018"
+7,WARN,2 Single-table,duplicate_grain,fact_transactions,"client_id, advisor_id, security_id, txn_date",712,0.238,"0.24% of rows share the same (client_id, advisor_id, security_id, txn_date) combination -- looks like accidental duplicates","txn_id=2913, txn_id=2984, txn_id=4133, txn_id=4157, txn_id=7035"
+8,WARN,4 Cross-table business rule,domain_mismatch_across_tables,dim_benchmark / dim_security,asset_class / asset_class,,,"related columns use different value sets. only in dim_benchmark: ['Cash', 'Emerging', 'International', 'Multi-Asset', 'Small Cap']; only in dim_security: ['Alternative', 'Cash Equivalent']",
+9,WARN,4 Cross-table business rule,fact_outside_entity_lifetime,fact_fees,fact_fees.fee_date vs dim_client.client_since,858,0.702,fee_date is before the dim_client.client_since date (858 distinct client_id values),"fee_id=104, fee_id=472, fee_id=565, fee_id=596, fee_id=633"
+10,WARN,4 Cross-table business rule,fact_missing_counterpart,fact_portfolio_snapshot,client_id + month vs fact_fees,7350,5.674,94.33% of fact_portfolio_snapshot rows have a fact_fees row for the same client_id and month; 7350 do not,"snapshot_id=22, snapshot_id=42, snapshot_id=59, snapshot_id=61, snapshot_id=66"
+11,WARN,4 Cross-table business rule,fact_outside_entity_lifetime,fact_portfolio_snapshot,fact_portfolio_snapshot.snapshot_date vs dim_client.client_since,930,0.718,snapshot_date is before the dim_client.client_since date (930 distinct client_id values),"snapshot_id=61, snapshot_id=111, snapshot_id=496, snapshot_id=592, snapshot_id=623"
+12,WARN,4 Cross-table business rule,fact_missing_counterpart,fact_transactions,client_id + month vs fact_fees,18900,6.33,93.67% of fact_transactions rows have a fact_fees row for the same client_id and month; 18900 do not,"txn_id=52, txn_id=106, txn_id=115, txn_id=129, txn_id=149"
+13,WARN,4 Cross-table business rule,fact_missing_counterpart,fact_transactions,client_id + month vs fact_portfolio_snapshot,2410,0.807,99.19% of fact_transactions rows have a fact_portfolio_snapshot row for the same client_id and month; 2410 do not,"txn_id=1278, txn_id=1282, txn_id=1285, txn_id=1287, txn_id=1288"
+14,INFO,1 Column-level,primary_key_inferred,dim_advisor,advisor_id,,,primary key = advisor_id (name matches table),
+15,INFO,1 Column-level,allowed_values_observed,dim_advisor,certifications,19,76.0,"4 distinct values: CFA (6); CFP, CFA (6); CFP, CIMA (4); CFP (3)",
+16,INFO,1 Column-level,allowed_values_observed,dim_advisor,region,25,100.0,5 distinct values: Northeast (9); Southeast (7); Mid-Atlantic (6); West (2); Midwest (1),
+17,INFO,1 Column-level,allowed_values_observed,dim_benchmark,asset_class,8,100.0,7 distinct values: Multi-Asset (2); Equity (1); Fixed Income (1); International (1); Small Cap (1); Emerging (1); Cash (1),
+18,INFO,1 Column-level,primary_key_inferred,dim_benchmark,benchmark_id,,,primary key = benchmark_id (name matches table),
+19,INFO,1 Column-level,primary_key_inferred,dim_client,client_id,,,primary key = client_id (name matches table),
+20,INFO,1 Column-level,date_range,dim_client,client_since,2500,100.0,2015-01-01 to 2022-12-30 (1651 distinct dates),
+21,INFO,1 Column-level,allowed_values_observed,dim_client,client_tier,2500,100.0,3 distinct values: Retail (1510); HNW (737); UHNW (253),
+22,INFO,1 Column-level,statistical_outliers,dim_client,initial_aum,228,9.12,"values outside the 3xIQR fence [-6.755e+06, 9.549e+06]","client_id=27, client_id=51, client_id=60, client_id=63, client_id=84"
+23,INFO,1 Column-level,allowed_values_observed,dim_client,primary_account_type,2500,100.0,5 distinct values: Trust (545); 529 (520); Roth IRA (484); Taxable (477); IRA (474),
+24,INFO,1 Column-level,allowed_values_observed,dim_client,risk_profile,2425,97.0,5 distinct values: Balanced (757); Moderately Conservative (501); Conservative (466); Moderately Aggressive (459); Aggressive (242),
+25,INFO,1 Column-level,allowed_values_observed,dim_client,state,2500,100.0,20 distinct values: PA (434); NY (305); NJ (301); FL (149); TX (137); CA (131); DE (104); VA (102); MD (96); MA (94); NC (92); IL (89); OH (86); CT (75); GA (73),
+26,INFO,1 Column-level,numeric_code_keep_as_text,dim_client,zip_code,228,9.12,digit-only code column; 228 values have leading zeros that a numeric conversion would silently drop -- keep as text,
+27,INFO,1 Column-level,date_range,dim_date,date,1827,100.0,2020-01-01 to 2024-12-31 (1827 distinct dates),
+28,INFO,1 Column-level,primary_key_inferred,dim_date,date_id,,,primary key = date_id (name matches table),
+29,INFO,1 Column-level,allowed_values_observed,dim_date,day_of_week,1827,100.0,7 distinct values: Wednesday (261); Thursday (261); Friday (261); Saturday (261); Sunday (261); Monday (261); Tuesday (261),
+30,INFO,1 Column-level,allowed_values_observed,dim_date,month_name,1827,100.0,12 distinct values: January (155); March (155); May (155); July (155); August (155); October (155); December (155); April (150); June (150); September (150); November (150); February (142),
+31,INFO,1 Column-level,allowed_values_observed,dim_security,asset_class,500,100.0,4 distinct values: Equity (281); Fixed Income (120); Alternative (58); Cash Equivalent (41),
+32,INFO,1 Column-level,integral_values_stored_as_decimal,dim_security,expense_ratio_bps,219,43.8,every value is a whole number written as 'N.0' (float artefact) -- can be stored as integer,
+33,INFO,1 Column-level,blank_values,dim_security,expense_ratio_bps,281,56.2,56.2% of cells are blank,
+34,INFO,1 Column-level,blank_values,dim_security,sector,219,43.8,43.8% of cells are blank,
+35,INFO,1 Column-level,allowed_values_observed,dim_security,sector,281,56.2,11 distinct values: Consumer Staples (35); Communication Services (33); Utilities (30); Technology (28); Energy (28); Materials (26); Healthcare (25); Real Estate (22); Consumer Discretionary (21); Financials (20); Industrials (13),
+36,INFO,1 Column-level,primary_key_inferred,dim_security,security_id,,,primary key = security_id (name matches table),
+37,INFO,1 Column-level,date_range,fact_fees,fee_date,122197,100.0,2020-01-01 to 2024-12-01 (60 distinct dates),
+38,INFO,1 Column-level,primary_key_inferred,fact_fees,fee_id,,,primary key = fee_id (name matches table),
+39,INFO,1 Column-level,allowed_values_observed,fact_fees,fee_type,122197,100.0,4 distinct values: Management (71122); Advisory (32370); Custodial (10259); Performance (8446),
+40,INFO,1 Column-level,allowed_values_observed,fact_portfolio_snapshot,account_type,129547,100.0,5 distinct values: Trust (28221); 529 (26882); Roth IRA (25005); IRA (24920); Taxable (24519),
+41,INFO,1 Column-level,statistical_outliers,fact_portfolio_snapshot,active_alpha_ytd,24543,18.945,"values outside the 3xIQR fence [-0.1128, 0.1206]","snapshot_id=61, snapshot_id=62, snapshot_id=111, snapshot_id=386, snapshot_id=387"
+42,INFO,1 Column-level,statistical_outliers,fact_portfolio_snapshot,return_ytd,3977,3.07,"values outside the 3xIQR fence [-0.4849, 0.5653]","snapshot_id=790, snapshot_id=1454, snapshot_id=1455, snapshot_id=1456, snapshot_id=1462"
+43,INFO,1 Column-level,date_range,fact_portfolio_snapshot,snapshot_date,129547,100.0,2020-01-01 to 2024-12-01 (60 distinct dates),
+44,INFO,1 Column-level,primary_key_inferred,fact_portfolio_snapshot,snapshot_id,,,primary key = snapshot_id (name matches table),
+45,INFO,1 Column-level,statistical_outliers,fact_transactions,amount,18,0.006,"values outside the 3xIQR fence [38.86, 2.544e+07] (log scale)","txn_id=2663, txn_id=20720, txn_id=87961, txn_id=92175, txn_id=95727"
+46,INFO,1 Column-level,blank_values,fact_transactions,price,101528,34.005,34.0% of cells are blank,
+47,INFO,1 Column-level,blank_values,fact_transactions,shares,101528,34.005,34.0% of cells are blank,
+48,INFO,1 Column-level,date_range,fact_transactions,txn_date,298572,100.0,2020-01-01 to 2024-12-30 (1826 distinct dates),
+49,INFO,1 Column-level,primary_key_inferred,fact_transactions,txn_id,,,"primary key = txn_id (first column, key-named, ~unique)",
+50,INFO,1 Column-level,allowed_values_observed,fact_transactions,txn_type,298572,100.0,6 distinct values: Buy (83498); Sell (59720); Dividend (53826); Deposit (35956); Advisory Fee (35742); Withdrawal (29830),
+51,INFO,2 Single-table,calendar_flag_equals_weekday,dim_date,is_trading_day,,,is_trading_day is 1 for every weekday -- market holidays are not excluded,
+52,INFO,2 Single-table,conditional_blank_rule_holds,dim_security,expense_ratio_bps vs asset_class,281,56.2,"blanks are explained: expense_ratio_bps is blank when asset_class in ['Equity'], filled otherwise (all rows comply)",
+53,INFO,2 Single-table,conditional_blank_rule_holds,dim_security,sector vs asset_class,219,43.8,"blanks are explained: sector is blank when asset_class in ['Alternative', 'Cash Equivalent', 'Fixed Income'], filled otherwise (all rows comply)",
+54,INFO,2 Single-table,derived_rule_holds,fact_fees,"aum_basis, bps_charged, amount",0,0.0,inferred rule 'amount = aum_basis * bps_charged / 120000' holds for every row,
+55,INFO,2 Single-table,derived_rule_holds,fact_portfolio_snapshot,"benchmark_return_ytd, active_alpha_ytd, return_ytd",0,0.0,inferred rule 'return_ytd = benchmark_return_ytd + active_alpha_ytd' holds for every row,
+56,INFO,2 Single-table,rows_flagged_by_source,fact_portfolio_snapshot,is_return_suspect,3875,2.991,2.99% of rows have is_return_suspect = True -- the source itself marks these as special,
+57,INFO,2 Single-table,rows_flagged_by_source,fact_transactions,is_post_departure_txn,2410,0.807,0.81% of rows have is_post_departure_txn = True -- the source itself marks these as special,
+58,INFO,2 Single-table,conditional_blank_rule_holds,fact_transactions,price vs txn_type,101528,34.005,"blanks are explained: price is blank when txn_type in ['Advisory Fee', 'Deposit', 'Withdrawal'], filled otherwise (all rows comply)",
+59,INFO,2 Single-table,conditional_blank_rule_holds,fact_transactions,security_id vs txn_type,101528,34.005,"blanks are explained: security_id is blank when txn_type in ['Advisory Fee', 'Deposit', 'Withdrawal'], filled otherwise (all rows comply)",
+60,INFO,2 Single-table,conditional_blank_rule_holds,fact_transactions,shares vs txn_type,101528,34.005,"blanks are explained: shares is blank when txn_type in ['Advisory Fee', 'Deposit', 'Withdrawal'], filled otherwise (all rows comply)",
+61,INFO,2 Single-table,derived_rule_holds,fact_transactions,"shares, price, amount",0,0.0,inferred rule 'amount = shares * price' holds for every row,
+62,INFO,3 Referential integrity,unreferenced_parent_rows,dim_benchmark,benchmark_id,2,25.0,2 of 8 dim_benchmark rows are never referenced by dim_security.benchmark_id,"'6', '8'"
+63,INFO,3 Referential integrity,unreferenced_parent_rows,dim_benchmark,benchmark_id,5,62.5,5 of 8 dim_benchmark rows are never referenced by fact_portfolio_snapshot.benchmark_id,"'2', '4', '5', '6', '7'"
+64,INFO,3 Referential integrity,fk_ok,dim_client,advisor_id,0,0.0,every non-blank advisor_id exists in dim_advisor.advisor_id,
+65,INFO,3 Referential integrity,fk_ok,dim_security,benchmark_id,0,0.0,every non-blank benchmark_id exists in dim_benchmark.benchmark_id,
+66,INFO,3 Referential integrity,fk_ok,fact_fees,advisor_id,0,0.0,every non-blank advisor_id exists in dim_advisor.advisor_id,
+67,INFO,3 Referential integrity,fk_ok,fact_fees,client_id,0,0.0,every non-blank client_id exists in dim_client.client_id,
+68,INFO,3 Referential integrity,fk_ok,fact_portfolio_snapshot,advisor_id,0,0.0,every non-blank advisor_id exists in dim_advisor.advisor_id,
+69,INFO,3 Referential integrity,fk_ok,fact_portfolio_snapshot,benchmark_id,0,0.0,every non-blank benchmark_id exists in dim_benchmark.benchmark_id,
+70,INFO,3 Referential integrity,fk_ok,fact_portfolio_snapshot,client_id,0,0.0,every non-blank client_id exists in dim_client.client_id,
+71,INFO,3 Referential integrity,fk_ok,fact_transactions,advisor_id,0,0.0,every non-blank advisor_id exists in dim_advisor.advisor_id,
+72,INFO,3 Referential integrity,fk_ok,fact_transactions,client_id,0,0.0,every non-blank client_id exists in dim_client.client_id,
+73,INFO,3 Referential integrity,fk_ok,fact_transactions,security_id,0,0.0,every non-blank security_id exists in dim_security.security_id,
+74,INFO,3 Referential integrity,fk_blank,fact_transactions,security_id,101528,34.005,101528 rows have no security_id (cannot join to dim_security; see conditional-blank checks for whether that is expected),
+75,INFO,4 Cross-table business rule,fact_date_spans,(multiple),,,,fact tables cover the same period: fact_fees: 2020-01-01 to 2024-12-01; fact_portfolio_snapshot: 2020-01-01 to 2024-12-01; fact_transactions: 2020-01-01 to 2024-12-30,
+76,INFO,4 Cross-table business rule,inconsistent_boolean_encoding,(multiple),,,,"boolean columns are encoded differently across tables: [False/True] dim_client.is_active, dim_security.is_etf; [0/1] dim_date.is_month_end, dim_date.is_quarter_end, dim_date.is_year_end, dim_date.is_trading_day...",
+77,INFO,4 Cross-table business rule,date_not_in_calendar,dim_client,client_since vs dim_date.date,1532,61.28,"dates with no row in dim_date (2020-01-01 to 2024-12-31) -- dimension attribute, not a join key, but note the calendar does not cover it","client_id=1, client_id=4, client_id=5, client_id=6, client_id=7"
+78,INFO,4 Cross-table business rule,fact_matches_dimension,fact_fees,fact_fees.advisor_id vs dim_client.advisor_id (via client_id),0,0.0,advisor_id always equals dim_client.advisor_id -- redundant copy,
+79,INFO,4 Cross-table business rule,facts_agree,fact_fees,fact_fees.advisor_id vs fact_portfolio_snapshot.advisor_id (same client_id + month),0,0.0,values agree in every matched row,
+80,INFO,4 Cross-table business rule,facts_agree,fact_fees,fact_fees.aum_basis vs fact_portfolio_snapshot.aum (same client_id + month),0,0.0,values agree in every matched row,
+81,INFO,4 Cross-table business rule,fact_matches_dimension,fact_portfolio_snapshot,fact_portfolio_snapshot.account_type vs dim_client.primary_account_type (via client_id),0,0.0,account_type always equals dim_client.primary_account_type -- redundant copy,
+82,INFO,4 Cross-table business rule,fact_matches_dimension,fact_portfolio_snapshot,fact_portfolio_snapshot.advisor_id vs dim_client.advisor_id (via client_id),0,0.0,advisor_id always equals dim_client.advisor_id -- redundant copy,
+83,INFO,4 Cross-table business rule,facts_agree,fact_portfolio_snapshot,fact_portfolio_snapshot.aum vs fact_fees.aum_basis (same client_id + month),0,0.0,values agree in every matched row,
+84,INFO,4 Cross-table business rule,fact_matches_dimension,fact_transactions,fact_transactions.advisor_id vs dim_client.advisor_id (via client_id),0,0.0,advisor_id always equals dim_client.advisor_id -- redundant copy,
